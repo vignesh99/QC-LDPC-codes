@@ -37,6 +37,8 @@ def genshiftedIM(cshift,N=3) :
 
     return manimIM,npIM
 
+###################################################################################################################
+###################################################################################################################
 def VNstoCN(shiftarr,Z=3) :
     '''
     This gives the VNs connecting to each CN in the
@@ -64,6 +66,8 @@ shift values
     cnxstr = ','.join(strcnxlist)
     return cnxstr
 
+###################################################################################################################
+###################################################################################################################
 def tg_edge(ed,G) :
     '''
     Define edge and its properties related to
@@ -91,6 +95,8 @@ def tg_edge(ed,G) :
 
     return edge
 
+###################################################################################################################
+###################################################################################################################
 def add_brack(mobj,Zval=2,v_buff=0.25,h_buff=0.25):
     '''
     Add brackets around a mobject
@@ -138,13 +144,91 @@ def add_brack(mobj,Zval=2,v_buff=0.25,h_buff=0.25):
     
     return VGroup(l_bracket, r_bracket)
 
-'''
-Animation specific functions
-'''
-def tg_node_LDPC(n,G,h=0.8,w=0.8) :
+###################################################################################################################
+###################################################################################################################
+def tg_node(n,G,h=0.6,w=0.6) :
     '''
     Define the node and its properties
     modified from : https://github.com/rajatvd/FactorGraphs/blob/ab5c0423d599b54371636edc041c062f09ed7109/fg_anim.py#L34
+
+    Input :
+    n - node key
+    G - factor graph
+    h - height
+    w - width
+
+    Output :
+    grp - manim node object
+    '''
+    node = G.nodes[n]
+    type_to_shape = {
+        'variablenode': Circle,
+        'checknode': Rectangle
+    }
+
+    def node_color(node_dict):
+        if node_dict['type'] == 'checknode':
+            return GREEN
+        return PURPLE_B
+
+    def node_name(n,node_dict) :
+        if node_dict['type'] == 'checknode' :
+            return  MathTex("C_{",n,"}",height=0.3, color=BLACK)
+            #return TexMobject(n, color=BLACK)
+        return MathTex("V_{",n,"}",height=0.27, color=BLACK)
+        #return TexMobject(n, color=BLACK)
+
+    bg = type_to_shape[node['type']](color=BLACK, fill_color=node_color(node),
+                                     fill_opacity=1, radius=0.25,
+                                     height=h, width=w)
+    x, y = node['pos']
+    grp = VGroup(bg, node_name(n,node))
+    grp.move_to(x*RIGHT + y*UP)
+    return grp
+
+###################################################################################################################
+###################################################################################################################
+def tanner_graph(cnodes,N,vnodes) :
+    '''
+    The factor graph with check nodes and variable
+    nodes. Each block(CN-VN) will have two cases for 
+    connection, either zero/non-zero block and no. of 
+    edges will be decided accordingly.
+
+    Input :
+    cnodes - list of check node names
+    N - no. of variable nodes
+    vnodes - grouped set of variable node connected
+to each check node
+
+    Output :
+    tg - the required tanner graph
+    '''
+    tg = nx.MultiGraph()
+    for cn in cnodes :  #add type attribute
+        tg.add_node(cn,type='checknode')
+
+    #Modify according to i/p
+    allvnodes = (np.arange(N).astype("int")).astype("str")
+    for vn in allvnodes : 
+        tg.add_node(vn,type='variablenode')
+
+    #Obtain CN-VN edges
+    vncxns = vnodes.split(",")
+    for cn,vns in zip(cnodes,vncxns) :
+        for i,vn in enumerate(vns.split('-')) :
+            tg.add_edge(cn,vn,axis=i)  #Why use axis?
+
+    return tg
+
+###################################################################################################################
+'''
+Animation specific functions
+'''
+###################################################################################################################
+def tg_node_LDPC(n,G,h=0.8,w=0.8) :
+    '''
+    Define the node and its properties with Tx node
 
     Input :
     n - node key
@@ -185,12 +269,15 @@ def tg_node_LDPC(n,G,h=0.8,w=0.8) :
     grp.move_to(x*RIGHT + y*UP)
     return grp
 
+###################################################################################################################
+###################################################################################################################
 def tanner_graph_LDPC(cnodes,N,vnodes,qnodes,cnlabels,vnlabels,qnlabels) :
     '''
     The factor graph with check nodes and variable
     nodes. Each block(CN-VN) will have two cases for 
     connection, either zero/non-zero block and no. of 
     edges will be decided accordingly.
+    Tx nodes are connected to this factor graph
 
     Input :
     cnodes - list of check node names
@@ -235,3 +322,202 @@ to each variable node
         tg.add_edge(qnodes[int(vn)],vn)
 
     return tg
+
+###################################################################################################################
+###################################################################################################################
+def tg_node_OUTLOOK(n,G,h=0.8,w=0.8) :
+    '''
+    Define the node and its properties with Tx node
+
+    Input :
+    n - node key
+    G - factor graph
+    h - height
+    w - width
+
+    Output :
+    grp - manim node object
+    '''
+    node = G.nodes[n]
+    type_to_shape = {
+        'variablenode': Circle,
+        'checknode': Rectangle,
+        'qnode':Circle
+    }
+
+    def node_color(node_dict):
+        if node_dict['type'] == 'checknode':
+            return GREEN_D
+        elif node_dict['type'] == 'qnode':
+            return RED_D
+        return PURPLE_B
+
+    def node_name(n,node_dict) :
+        if node_dict['type'] == 'checknode' :
+            return  MathTex("C_{",n,"}", color=BLACK)
+        #Offset the value from G to the 1st letter of QNs
+        elif node_dict['type'] == 'qnode' :
+            return  MathTex("Q_{",str(ord(n)-ord('G')),"}",height=0.3, color=BLACK)
+        return MathTex("V_{",n,"}",height=0.3, color=BLACK)
+
+    bg = type_to_shape[node['type']](color=BLACK, fill_color=node_color(node),
+                                     fill_opacity=1, radius=0.25,
+                                     height=h, width=w)
+    x, y = node['pos']
+    grp = VGroup(bg, node_name(n,node))
+    grp.move_to(x*RIGHT + y*UP)
+    return grp
+
+###################################################################################################################
+###################################################################################################################
+def tanner_graph_OUTLOOK(cnodes,N,vnodes,qnodes) :
+    '''
+    The factor graph with check nodes and variable
+    nodes. Each block(CN-VN) will have two cases for 
+    connection, either zero/non-zero block and no. of 
+    edges will be decided accordingly.
+    Memory nodes are connected to this factor graph
+
+    Input :
+    cnodes - list of check node names
+    N - no. of variable nodes
+    vnodes - grouped set of variable nodes connected
+to each check node
+    qnodes - grouped set of memory nodes connected
+to each variable node
+
+    Output :
+    tg - the required tanner graph
+    '''
+    tg = nx.MultiDiGraph()
+    for cn in cnodes :  #add type attribute
+        tg.add_node(cn,type='checknode')
+
+    #Modify according to i/p
+    allvnodes = (np.arange(N).astype("int")).astype("str")
+    for vn in allvnodes : 
+        tg.add_node(vn,type='variablenode')
+
+    for qn in qnodes :  #add type attribute
+        tg.add_node(qn,type='qnode')
+
+    #Obtain CN-VN edges
+    vncxns = vnodes.split(",")
+    for cn,vns in zip(cnodes,vncxns) :
+        for i,vn in enumerate(vns.split('-')) :
+            tg.add_edge(cn,vn,axis=i)
+            tg.add_edge(vn,cn,axis=i)
+
+    #Add VN-Q edges
+    for vn in allvnodes :
+        tg.add_edge(vn,qnodes[int(vn)])
+        tg.add_edge(qnodes[int(vn)],vn)
+
+    return tg
+
+###################################################################################################################
+###################################################################################################################
+def tg_node_OMS(n,G,h=0.8,w=0.8) :
+    '''
+    Define the node and its properties with Tx node
+
+    Input :
+    n - node key
+    G - factor graph
+    h - height
+    w - width
+
+    Output :
+    grp - manim node object
+    '''
+    node = G.nodes[n]
+    type_to_shape = {
+        'variablenode': Circle,
+        'checknode': Rectangle,
+        'qnode':Circle,
+        'inode':Dot
+    }
+
+    def node_color(node_dict):
+        if node_dict['type'] == 'checknode':
+            return GREEN_D
+        elif node_dict['type'] == 'qnode':
+            return RED_D
+        elif node_dict['type'] == 'inode':
+            return DARK_BROWN
+        return PURPLE_B
+
+    def node_name(n,node_dict) :
+        if node_dict['type'] == 'checknode' :
+            return  MathTex("C_{",n,"}", color=BLACK)
+        #Offset the value from G to the 1st letter of QNs
+        elif node_dict['type'] == 'qnode' :
+            return  MathTex("Q_{",str(ord(n)-ord('G')),"}",height=0.3, color=BLACK)
+        elif node_dict['type'] == 'inode' :
+            return  MathTex("",height=0.01, color=DARK_BROWN)
+        return MathTex("V_{",n,"}",height=0.3, color=BLACK)
+
+    bg = type_to_shape[node['type']](color=BLACK, fill_color=node_color(node),
+                                     fill_opacity=1, radius=0.25,
+                                     height=h, width=w)
+    x, y = node['pos']
+    grp = VGroup(bg, node_name(n,node))
+    grp.move_to(x*RIGHT + y*UP)
+    return grp
+
+###################################################################################################################
+###################################################################################################################
+def tanner_graph_OMS(cnodes,N,vnodes,qnodes,inodes) :
+    '''
+    The factor graph with check nodes and variable
+    nodes. Each block(CN-VN) will have two cases for 
+    connection, either zero/non-zero block and no. of 
+    edges will be decided accordingly.
+    Memory and input nodes are connected to this factor graph
+
+    Input :
+    cnodes - list of check node names
+    N - no. of variable nodes
+    vnodes - grouped set of variable nodes connected
+to each check node
+    qnodes - grouped set of memory nodes connected
+to each variable node
+    inodes - grouped set of input nodes connected
+to each variable node
+
+    Output :
+    tg - the required tanner graph
+    '''
+    tg = nx.MultiDiGraph()
+    for cn in cnodes :  #add type attribute
+        tg.add_node(cn,type='checknode')
+
+    #Modify according to i/p
+    allvnodes = (np.arange(N).astype("int")).astype("str")
+    for vn in allvnodes : 
+        tg.add_node(vn,type='variablenode')
+
+    for qn in qnodes :  #add type attribute
+        tg.add_node(qn,type='qnode')
+    for ind in inodes :  #add type attribute
+        tg.add_node(ind,type='inode')
+
+    #Obtain CN-VN edges
+    vncxns = vnodes.split(",")
+    for cn,vns in zip(cnodes,vncxns) :
+        for i,vn in enumerate(vns.split('-')) :
+            tg.add_edge(cn,vn,axis=i)
+            tg.add_edge(vn,cn,axis=i)
+
+    #Add VN-QN edges
+    for vn in allvnodes :
+        tg.add_edge(vn,qnodes[int(vn)])
+        tg.add_edge(qnodes[int(vn)],vn)
+
+    #Add QN-IN edges
+    for vn in allvnodes :
+        tg.add_edge(inodes[int(vn)],qnodes[int(vn)])
+        tg.add_edge(qnodes[int(vn)],inodes[int(vn)])
+        
+    return tg
+
