@@ -16,3 +16,7 @@ For example, to implement the animation class defined as 'OMS', the following co
 ```
 manim classes.py OMS
 ```
+You can find the animation video in the below path of the same directory
+```
+media/videos/classes/1080p60/OMS.mp4
+```
